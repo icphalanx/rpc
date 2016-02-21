@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package rpc;
+
+import "google/protobuf/timestamp.proto";
+
+message SigningRequest {
+	string csr = 1;
+}
+
+message SigningResponse {
+	string cert = 1;
+}
+
+message HostConfiguration {
+	uint32 port = 1;
+}
+
+message Issue {
+	string id = 1;
+}
+
+message Metric {
+	string id = 1;
+	string humanName = 2;
+	string humanDesc = 3;
+	
+	enum Type {
+		UNKNOWN = 0;
+		UNCOUNTABLE = 1;
+		STRINGARRAY = 2;
+	}
+	Type type = 4;
+
+	enum Status {
+		NONE = 0;
+		HEALTHY = 1;
+		WARNING = 2;
+		DANGER = 3;
+	}
+	Status status = 5;
+
+	message StringArray {
+		repeated string value = 1;
+	}
+	oneof value {
+		int64 intValue = 6;
+		StringArray stringArrayValue = 7;
+	}
+}
+
+message Host {
+	string id = 1;
+	repeated string parents = 2;
+
+	string humanName = 3;
+}
+
+message Reporter {
+	string id = 1;
+	repeated Issue issues = 2;
+	repeated Metric metrics = 3;
+	repeated Host children = 4;
+}
+
+message ReportRequest {
+	repeated Reporter reporters = 1;
+	Host host = 2;
+}
+
+message ReportResponse {
+	bool success = 1;
+}
+
+message LogLine {
+	string reporter = 1;
+	string line = 2;
+	google.protobuf.Timestamp timestamp = 3;
+	string host = 4;
+	repeated string tags = 5;
+}
+
+message RecordLogsResponse {
+	uint32 receivedLines = 1;
+}
+
+service PhalanxCollector {
+	rpc Report (ReportRequest) returns (ReportResponse);
+	rpc ConfigureMe (Host) returns (HostConfiguration);
+	rpc SignMe (SigningRequest) returns (SigningResponse);
+	rpc RecordLogs (stream LogLine) returns (RecordLogsResponse);
+}
